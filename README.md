@@ -1,6 +1,7 @@
 # DailyBrief
 
 Build contract: [SPEC.md](./SPEC.md).
+How we work: [CONTRIBUTING.md](./CONTRIBUTING.md). `main` stays buildable and testable.
 
 One morning email: the TikToks, Reddit threads, X accounts, and App Store review spikes you actually follow.
 
