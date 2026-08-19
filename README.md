@@ -81,6 +81,7 @@ Dev server (SQLite at `./data/dailybrief.sqlite` unless `DAILYBRIEF_DATABASE` is
 npm start
 # GET /healthz → { "ok": true }
 # POST /auth/magic-link { "email": "you@example.com" }  (prints the link; no live mail)
+# GET /unsub/:token  (one-click; no login)
 ```
 
 `AUTH_SECRET` is required in production (min 16 chars). Dev uses a fixed local secret. `PUBLIC_BASE_URL` defaults to `http://localhost:3000`.

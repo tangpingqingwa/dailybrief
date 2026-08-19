@@ -18,6 +18,12 @@ export type SessionClaims = {
   exp: number;
 };
 
+export type UnsubClaims = {
+  v: 1;
+  kind: "unsub";
+  sub: string;
+};
+
 export function newJti(): string {
   return randomBytes(16).toString("hex");
 }
@@ -76,6 +82,19 @@ export function verifySession(
     return null;
   }
   if (payload.exp <= now.getTime()) {
+    return null;
+  }
+  return payload;
+}
+
+export function signUnsub(userId: string, secret: string): string {
+  const claims: UnsubClaims = { v: 1, kind: "unsub", sub: userId };
+  return signPayload(claims, secret);
+}
+
+export function verifyUnsub(token: string, secret: string): UnsubClaims | null {
+  const payload = verifyPayload(token, secret);
+  if (!isUnsubClaims(payload)) {
     return null;
   }
   return payload;
@@ -141,5 +160,18 @@ function isSessionClaims(value: unknown): value is SessionClaims {
     rec.sub.length > 0 &&
     typeof rec.exp === "number" &&
     Number.isFinite(rec.exp)
+  );
+}
+
+function isUnsubClaims(value: unknown): value is UnsubClaims {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const rec = value as Record<string, unknown>;
+  return (
+    rec.v === 1 &&
+    rec.kind === "unsub" &&
+    typeof rec.sub === "string" &&
+    rec.sub.length > 0
   );
 }

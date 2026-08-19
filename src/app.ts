@@ -5,6 +5,7 @@ import { openDatabase, type DailyBriefDb } from "./db.js";
 import { createConsoleEmail } from "./email/console.js";
 import type { EmailPort } from "./email/port.js";
 import { healthRoutes } from "./http/routes/health.js";
+import { unsubRoutes } from "./http/routes/unsub.js";
 
 export type BuildAppOptions = {
   logger?: boolean;
@@ -30,12 +31,15 @@ export async function buildApp(
     });
   }
   await app.register(healthRoutes);
+  const authSecret = options.authSecret ?? loadAuthSecret();
+  const now = options.now ?? (() => new Date());
   await app.register(authRoutes, {
     email: options.email ?? createConsoleEmail(),
-    authSecret: options.authSecret ?? loadAuthSecret(),
+    authSecret,
     publicBaseUrl: options.publicBaseUrl ?? parsePublicBaseUrl(),
-    now: options.now ?? (() => new Date()),
+    now,
     secureCookies: options.secureCookies ?? process.env.NODE_ENV === "production",
   });
+  await app.register(unsubRoutes, { authSecret, now });
   return app;
 }

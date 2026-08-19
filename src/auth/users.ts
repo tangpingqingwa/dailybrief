@@ -67,6 +67,29 @@ export function findOrCreateUser(
   return mapUser(created);
 }
 
+export function unsubscribeUser(
+  db: DailyBriefDb,
+  userId: string,
+  now: Date,
+): "missing" | "unsubscribed" | "already" {
+  const row = db
+    .prepare<[{ id: string }], { unsubscribed_at: string | null }>(
+      "SELECT unsubscribed_at FROM users WHERE id = @id",
+    )
+    .get({ id: userId });
+  if (row === undefined) {
+    return "missing";
+  }
+  if (row.unsubscribed_at !== null) {
+    return "already";
+  }
+  db.prepare("UPDATE users SET unsubscribed_at = ? WHERE id = ?").run(
+    now.toISOString(),
+    userId,
+  );
+  return "unsubscribed";
+}
+
 export function consumeMagicLinkJti(
   db: DailyBriefDb,
   jti: string,

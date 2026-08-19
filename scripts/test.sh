@@ -62,6 +62,25 @@ grep -q 'createFakeClip' tests/ingest.test.ts \
 grep -q 'tiktok.com\|vm.tiktok.com\|www.tiktok.com' src/ingest.ts \
   && fail "ingest must not scrape TikTok hosts"
 
+echo "== daily send contract =="
+grep -q 'Nothing new yesterday' SPEC.md \
+  || fail "SPEC.md missing empty-day copy"
+grep -q 'List-Unsubscribe' SPEC.md \
+  || fail "SPEC.md missing List-Unsubscribe"
+grep -q 'GET  /unsub/:token' SPEC.md \
+  || fail "SPEC.md missing GET /unsub/:token"
+[[ -f src/send.ts ]] || fail "missing src/send.ts"
+[[ -f src/email/templates/daily.ts ]] || fail "missing src/email/templates/daily.ts"
+[[ -f src/http/routes/unsub.ts ]] || fail "missing src/http/routes/unsub.ts"
+[[ -f tests/send.test.ts ]] || fail "missing tests/send.test.ts"
+grep -q 'createFakeEmail' tests/send.test.ts \
+  || fail "send tests must use fake email (offline)"
+grep -q 'Nothing new yesterday' src/email/templates/daily.ts \
+  || fail "empty-mail template missing 'Nothing new yesterday'"
+if grep -Eqi 'resend|postmark|ses\.amazonaws|smtp' src/send.ts src/email/templates/daily.ts src/http/routes/unsub.ts; then
+  fail "daily send must use EmailPort only (no live mail)"
+fi
+
 if [[ -f package.json ]]; then
   echo "== install =="
   if [[ ! -d node_modules ]]; then
