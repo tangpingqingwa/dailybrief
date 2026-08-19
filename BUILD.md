@@ -73,6 +73,7 @@ If transcript `no_transcript`: summary = first 200 chars of description + ` (no 
 | unsub | token invalidates; no further send |
 | clip down | delivery still recorded with `partial=1`, no scrape |
 | cap | 6th source on starter → 400 |
+| slack pro | Pro posts same text; Starter never posts; webhook 4xx still emails |
 
 ---
 
@@ -102,7 +103,9 @@ If transcript `no_transcript`: summary = first 200 chars of description + ` (no 
 - **Acceptance:** starter 5 / pro 25
 
 ### PR 6: Slack webhook (Pro)
+- **Files:** src/slack/*, src/http/routes/slack.ts, src/send.ts, migrations/005_slack.sql, tests/slack.test.ts
 - **Dependencies:** PR 5
+- **Acceptance:** Pro incoming webhook, same text as email; Starter/trial 403; webhook 4xx still emails
 
 Reddit/X/Store types each get their own later PR **after** those APIs have BUILD PR “launch” on main. Not in v1 launch.
 

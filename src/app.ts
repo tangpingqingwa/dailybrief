@@ -13,6 +13,7 @@ import { createConsoleEmail } from "./email/console.js";
 import type { EmailPort } from "./email/port.js";
 import { billingRoutes } from "./http/routes/billing.js";
 import { healthRoutes } from "./http/routes/health.js";
+import { slackRoutes } from "./http/routes/slack.js";
 import { sourcesRoutes } from "./http/routes/sources.js";
 import { unsubRoutes } from "./http/routes/unsub.js";
 
@@ -65,5 +66,6 @@ export async function buildApp(
     stripe: options.stripe ?? createStripeClient(),
     publicBaseUrl,
   });
+  await app.register(slackRoutes, session);
   return app;
 }

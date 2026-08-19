@@ -103,6 +103,30 @@ if grep -Eqi 'https?://[^[:space:]]*stripe\.com' \
   fail "billing must use StripePort only (no live Stripe)"
 fi
 
+echo "== slack webhook (pro) =="
+grep -q 'Slack: Pro only' SPEC.md \
+  || fail "SPEC.md missing Slack Pro-only contract"
+grep -q 'If webhook 4xx, email still sends' SPEC.md \
+  || fail "SPEC.md missing Slack 4xx still-email rule"
+grep -q 'POST /app/slack' SPEC.md \
+  || fail "SPEC.md missing POST /app/slack"
+[[ -f src/slack/port.ts ]] || fail "missing src/slack/port.ts"
+[[ -f src/slack/fake.ts ]] || fail "missing src/slack/fake.ts"
+[[ -f src/slack/webhook.ts ]] || fail "missing src/slack/webhook.ts"
+[[ -f src/http/routes/slack.ts ]] || fail "missing src/http/routes/slack.ts"
+[[ -f src/migrations/005_slack.sql ]] || fail "missing src/migrations/005_slack.sql"
+[[ -f tests/slack.test.ts ]] || fail "missing tests/slack.test.ts"
+grep -q 'createFakeSlack' tests/slack.test.ts \
+  || fail "slack tests must use fake Slack (offline)"
+grep -q 'slack_not_allowed' tests/slack.test.ts \
+  || fail "slack tests must refuse non-Pro plans"
+grep -q 'createFakeSlack' src/send.ts \
+  && fail "send must not import the Slack fake"
+if grep -Eqi 'https?://hooks\.slack\.com' \
+  src/slack/*.ts src/http/routes/slack.ts src/send.ts src/auth/users.ts; then
+  fail "slack must use SlackPort only (no live Slack)"
+fi
+
 if [[ -f package.json ]]; then
   echo "== install =="
   if [[ ! -d node_modules ]]; then
@@ -113,8 +137,8 @@ if [[ -f package.json ]]; then
     fi
   fi
 
-  # Never inherit a live ClipAPI or Stripe target. Tests use fakes only.
-  unset CLIPAPI_BASE CLIPAPI_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_API_KEY
+  # Never inherit a live ClipAPI, Stripe, or Slack target. Tests use fakes only.
+  unset CLIPAPI_BASE CLIPAPI_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_API_KEY SLACK_WEBHOOK_URL
 
   echo "== tsc --noEmit =="
   npx tsc --noEmit

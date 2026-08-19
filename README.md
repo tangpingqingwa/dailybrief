@@ -69,7 +69,7 @@ Low-price subs. Primary success is not MRR:
 
 ## Run locally
 
-Node 22+. Offline tests (no ClipAPI, no mail, no Stripe):
+Node 22+. Offline tests (no ClipAPI, no mail, no Stripe, no Slack):
 
 ```bash
 bash scripts/test.sh
@@ -83,6 +83,8 @@ npm start
 # POST /auth/magic-link { "email": "you@example.com" }  (prints the link; no live mail)
 # GET /unsub/:token  (one-click; no login)
 # GET /app/billing  (auth; $9 starter / $19 pro, source caps 5 / 25)
+# GET /app/slack  (auth; Pro incoming webhook; Starter 403)
+# POST /app/slack { "webhookUrl": "https://hooks.slack.test/..." }  (Pro only)
 # POST /app/sources { "handle": "@alice" }  (auth; ClipAPI latest; plan cap)
 ```
 

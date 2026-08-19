@@ -76,9 +76,11 @@ test("users default timezone and plan; send_hour is fixed at 7", () => {
         unsubscribed_at: string | null;
         stripe_customer_id: string | null;
         stripe_subscription_id: string | null;
+        slack_webhook_url: string | null;
       }
     >(
-      `SELECT unsubscribed_at, stripe_customer_id, stripe_subscription_id
+      `SELECT unsubscribed_at, stripe_customer_id, stripe_subscription_id,
+              slack_webhook_url
        FROM users WHERE id = 'user_1'`,
     )
     .get();
@@ -86,6 +88,7 @@ test("users default timezone and plan; send_hour is fixed at 7", () => {
     unsubscribed_at: null,
     stripe_customer_id: null,
     stripe_subscription_id: null,
+    slack_webhook_url: null,
   });
 });
 
