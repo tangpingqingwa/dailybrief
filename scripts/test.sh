@@ -37,6 +37,17 @@ echo "== markdown is UTF-8 text =="
 file -b --mime-encoding README.md SPEC.md BUILD.md CONTRIBUTING.md | grep -qiE 'utf-8|us-ascii' \
   || fail "docs are not UTF-8/ASCII"
 
+echo "== magic-link contract =="
+grep -q 'HMAC-signed token, 20 min TTL' SPEC.md \
+  || fail "SPEC.md missing magic-link TTL contract"
+grep -q 'EmailPort.send' SPEC.md || fail "SPEC.md missing EmailPort.send"
+grep -q 'EmailPort.send' BUILD.md || fail "BUILD.md missing EmailPort.send"
+[[ -f src/auth/token.ts ]] || fail "missing src/auth/token.ts"
+[[ -f src/email/port.ts ]] || fail "missing src/email/port.ts"
+[[ -f tests/auth.test.ts ]] || fail "missing tests/auth.test.ts"
+grep -q 'createFakeEmail' tests/auth.test.ts \
+  || fail "auth tests must use fake email (offline)"
+
 if [[ -f package.json ]]; then
   echo "== install =="
   if [[ ! -d node_modules ]]; then

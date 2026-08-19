@@ -80,7 +80,10 @@ Dev server (SQLite at `./data/dailybrief.sqlite` unless `DAILYBRIEF_DATABASE` is
 ```bash
 npm start
 # GET /healthz → { "ok": true }
+# POST /auth/magic-link { "email": "you@example.com" }  (prints the link; no live mail)
 ```
+
+`AUTH_SECRET` is required in production (min 16 chars). Dev uses a fixed local secret. `PUBLIC_BASE_URL` defaults to `http://localhost:3000`.
 
 Kill switch: `FREEZE_NEW_SOURCES=0` (default). Set `1` after the 90-day review — this PR only reads the flag.
 
