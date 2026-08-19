@@ -3,6 +3,7 @@ export type EmailMessage = {
   subject: string;
   text: string;
   html?: string;
+  headers?: Record<string, string>;
 };
 
 export type EmailPort = {

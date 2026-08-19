@@ -67,6 +67,13 @@ test("users default timezone and plan; send_hour is fixed at 7", () => {
       NOW,
     );
   }, /UNIQUE|constraint/i);
+
+  const unsub = db
+    .prepare<[], { unsubscribed_at: string | null }>(
+      "SELECT unsubscribed_at FROM users WHERE id = 'user_1'",
+    )
+    .get();
+  assert.equal(unsub?.unsubscribed_at, null);
 });
 
 test("sources are per-user; same handle may exist for two users", () => {
