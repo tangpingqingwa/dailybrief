@@ -46,6 +46,36 @@ type StripeRow = {
   stripe_subscription_id: string | null;
 };
 
+export function findUserSlackWebhook(
+  db: DailyBriefDb,
+  id: string,
+): string | null {
+  const row = db
+    .prepare<[{ id: string }], { slack_webhook_url: string | null }>(
+      "SELECT slack_webhook_url FROM users WHERE id = @id",
+    )
+    .get({ id });
+  if (row === undefined) {
+    return null;
+  }
+  return row.slack_webhook_url;
+}
+
+export function setUserSlackWebhook(
+  db: DailyBriefDb,
+  userId: string,
+  webhookUrl: string | null,
+): boolean {
+  if (findUserById(db, userId) === null) {
+    return false;
+  }
+  db.prepare("UPDATE users SET slack_webhook_url = ? WHERE id = ?").run(
+    webhookUrl,
+    userId,
+  );
+  return true;
+}
+
 export function findUserStripe(db: DailyBriefDb, id: string): UserStripe | null {
   const row = db
     .prepare<[{ id: string }], StripeRow>(

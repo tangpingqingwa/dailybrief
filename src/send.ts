@@ -4,13 +4,18 @@ import { normalizeCreatorHandle } from "./clients/clip.js";
 import type { DailyBriefDb } from "./db.js";
 import { renderDailyEmail } from "./email/templates/daily.js";
 import type { EmailPort } from "./email/port.js";
+import type { SlackPort } from "./slack/port.js";
+import { slackEnabledForPlan } from "./slack/webhook.js";
 import { SEND_HOUR, type Plan } from "./types.js";
 
 export const DEFAULT_TIMEZONE = "America/New_York";
 
+export type SlackDelivery = "sent" | "failed" | "skipped";
+
 export type SendDeps = {
   db: DailyBriefDb;
   email: EmailPort;
+  slack?: SlackPort;
   authSecret: string;
   publicBaseUrl: string;
   now?: Date;
@@ -23,6 +28,7 @@ export type SendUserResult = {
   itemIds: string[];
   partial: boolean;
   sent: boolean;
+  slack: SlackDelivery;
   skipped: "already_processed" | "unsubscribed" | "empty_trial" | null;
 };
 
@@ -40,6 +46,7 @@ type SendUserRow = {
   plan: Plan;
   send_hour: number;
   unsubscribed_at: string | null;
+  slack_webhook_url: string | null;
 };
 
 type SourceRow = {
@@ -247,6 +254,7 @@ async function sendUserDay(
       itemIds: [],
       partial: false,
       sent: false,
+      slack: "skipped",
       skipped: "unsubscribed",
     };
   }
@@ -259,6 +267,7 @@ async function sendUserDay(
       itemIds: [],
       partial: false,
       sent: false,
+      slack: "skipped",
       skipped: "already_processed",
     };
   }
@@ -303,6 +312,7 @@ async function sendUserDay(
   const partial = delayedLabels.length > 0;
   const empty = included.length === 0;
   const shouldSend = !empty || partial || user.plan !== "trial";
+  let slack: SlackDelivery = "skipped";
 
   if (shouldSend) {
     const unsubUrl = `${deps.publicBaseUrl}/unsub/${signUnsub(user.id, deps.authSecret)}`;
@@ -329,6 +339,8 @@ async function sendUserDay(
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       },
     });
+    // Email first: a Slack 4xx/throw must not block the inbox (SPEC §8).
+    slack = await postProSlack(deps, user, rendered.text);
   }
 
   const itemIds = included.map((item) => item.id);
@@ -344,14 +356,38 @@ async function sendUserDay(
     itemIds,
     partial,
     sent: shouldSend,
+    slack,
     skipped: shouldSend ? null : "empty_trial",
   };
+}
+
+async function postProSlack(
+  deps: SendDeps,
+  user: SendUserRow,
+  text: string,
+): Promise<SlackDelivery> {
+  if (!slackEnabledForPlan(user.plan)) {
+    return "skipped";
+  }
+  const webhookUrl = user.slack_webhook_url;
+  if (webhookUrl === null || webhookUrl === "") {
+    return "skipped";
+  }
+  if (deps.slack === undefined) {
+    return "failed";
+  }
+  try {
+    const result = await deps.slack.post(webhookUrl, { text });
+    return result.ok ? "sent" : "failed";
+  } catch {
+    return "failed";
+  }
 }
 
 function listSendUsers(db: DailyBriefDb): SendUserRow[] {
   return db
     .prepare<[], SendUserRow>(
-      `SELECT id, email, timezone, plan, send_hour, unsubscribed_at
+      `SELECT id, email, timezone, plan, send_hour, unsubscribed_at, slack_webhook_url
        FROM users
        ORDER BY id ASC`,
     )

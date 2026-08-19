@@ -181,6 +181,9 @@ POST /app/sources         add (validate via upstream latest)
 POST /app/sources/:id/delete
 GET  /app/preview         last delivery
 GET  /app/billing
+GET  /app/slack           configured? (auth)
+POST /app/slack           { webhookUrl } Pro only; 403 slack_not_allowed otherwise
+POST /app/slack/delete
 GET  /unsub/:token
 ```
 
