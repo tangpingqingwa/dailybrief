@@ -1,5 +1,7 @@
 # DailyBrief
 
+Build contract: [SPEC.md](./SPEC.md).
+
 One morning email: the TikToks, Reddit threads, X accounts, and App Store review spikes you actually follow.
 
 This is Recapio. It is the application layer, not the lottery ticket. It exists to force ClipAPI / RedditAPI / ThreadAPI / StoreAPI into production and to test whether consumer subs convert. Assume they convert poorly.
