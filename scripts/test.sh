@@ -13,7 +13,7 @@ fail() {
 }
 
 echo "== contract files =="
-for f in README.md SPEC.md CONTRIBUTING.md scripts/test.sh; do
+for f in README.md SPEC.md BUILD.md CONTRIBUTING.md scripts/test.sh; do
   [[ -f "$f" ]] || fail "missing $f"
   [[ -s "$f" ]] || fail "empty $f"
 done
@@ -34,7 +34,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 echo "== markdown is UTF-8 text =="
-file -b --mime-encoding README.md SPEC.md CONTRIBUTING.md | grep -qiE 'utf-8|us-ascii' \
+file -b --mime-encoding README.md SPEC.md BUILD.md CONTRIBUTING.md | grep -qiE 'utf-8|us-ascii' \
   || fail "docs are not UTF-8/ASCII"
 
 echo "OK: buildable and testable"
