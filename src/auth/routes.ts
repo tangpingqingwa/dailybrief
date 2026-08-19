@@ -1,21 +1,20 @@
-import type { FastifyPluginAsync, FastifyRequest } from "fastify";
+import type { FastifyPluginAsync } from "fastify";
+import { sourceCapForPlan } from "../billing/plans.js";
 import type { EmailPort } from "../email/port.js";
-import type { User } from "../types.js";
+import { listSources } from "../sources.js";
 import {
   clearSessionCookie,
-  readCookie,
   serializeSessionCookie,
-  SESSION_COOKIE,
 } from "./cookie.js";
 import { normalizeEmail } from "./email.js";
+import { loadSessionUser } from "./session.js";
 import {
   SESSION_TTL_MS,
   signMagicLink,
   signSession,
   verifyMagicLink,
-  verifySession,
 } from "./token.js";
-import { consumeMagicLinkJti, findOrCreateUser, findUserById } from "./users.js";
+import { consumeMagicLinkJti, findOrCreateUser } from "./users.js";
 
 export const MAGIC_LINK_PATH = "/auth/magic-link" as const;
 export const VERIFY_PATH = "/auth/verify" as const;
@@ -98,29 +97,12 @@ export const authRoutes: FastifyPluginAsync<AuthPluginOptions> = async (
     if (user === null) {
       return reply.code(401).send({ error: "unauthorized" } satisfies ErrorBody);
     }
-    return { user, sources: [] };
+    const sources = listSources(app.db, user.id);
+    return {
+      user,
+      sources,
+      sourceCount: sources.length,
+      sourceCap: sourceCapForPlan(user.plan),
+    };
   });
 };
-
-function loadSessionUser(
-  request: FastifyRequest,
-  db: FastifyRequest["server"]["db"],
-  options: AuthPluginOptions,
-): User | null {
-  const token = readCookie(headerString(request.headers.cookie), SESSION_COOKIE);
-  if (token === null) {
-    return null;
-  }
-  const claims = verifySession(token, options.now(), options.authSecret);
-  if (claims === null) {
-    return null;
-  }
-  return findUserById(db, claims.sub);
-}
-
-function headerString(value: string | string[] | undefined): string | undefined {
-  if (Array.isArray(value)) {
-    return value.join("; ");
-  }
-  return value;
-}

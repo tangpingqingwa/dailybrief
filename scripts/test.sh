@@ -81,6 +81,28 @@ if grep -Eqi 'resend|postmark|ses\.amazonaws|smtp' src/send.ts src/email/templat
   fail "daily send must use EmailPort only (no live mail)"
 fi
 
+echo "== stripe billing + source caps =="
+grep -Fq '| Starter | $9 / mo | 5 |' SPEC.md \
+  || fail "SPEC.md missing Starter $9 / 5 sources"
+grep -Fq '| Pro | $19 / mo | 25 |' SPEC.md \
+  || fail "SPEC.md missing Pro $19 / 25 sources"
+grep -q '6th source on starter' BUILD.md \
+  || fail "BUILD.md missing starter cap test"
+[[ -f src/billing/port.ts ]] || fail "missing src/billing/port.ts"
+[[ -f src/billing/fake.ts ]] || fail "missing src/billing/fake.ts"
+[[ -f src/billing/plans.ts ]] || fail "missing src/billing/plans.ts"
+[[ -f src/sources.ts ]] || fail "missing src/sources.ts"
+[[ -f tests/billing.test.ts ]] || fail "missing tests/billing.test.ts"
+[[ -f tests/sources.test.ts ]] || fail "missing tests/sources.test.ts"
+grep -q 'createFakeStripe' tests/billing.test.ts \
+  || fail "billing tests must use fake Stripe (offline)"
+grep -q 'source_cap' tests/sources.test.ts \
+  || fail "sources tests must assert the plan cap"
+if grep -Eqi 'https?://[^[:space:]]*stripe\.com' \
+  src/billing/*.ts src/http/routes/billing.ts src/sources.ts; then
+  fail "billing must use StripePort only (no live Stripe)"
+fi
+
 if [[ -f package.json ]]; then
   echo "== install =="
   if [[ ! -d node_modules ]]; then
@@ -91,8 +113,8 @@ if [[ -f package.json ]]; then
     fi
   fi
 
-  # Never inherit a live ClipAPI target. Tests use tests/fake-clip.ts only.
-  unset CLIPAPI_BASE CLIPAPI_KEY
+  # Never inherit a live ClipAPI or Stripe target. Tests use fakes only.
+  unset CLIPAPI_BASE CLIPAPI_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_API_KEY
 
   echo "== tsc --noEmit =="
   npx tsc --noEmit

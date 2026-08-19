@@ -36,6 +36,63 @@ export function findUserById(db: DailyBriefDb, id: string): User | null {
   return row === undefined ? null : mapUser(row);
 }
 
+export type UserStripe = {
+  customerId: string | null;
+  subscriptionId: string | null;
+};
+
+type StripeRow = {
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+};
+
+export function findUserStripe(db: DailyBriefDb, id: string): UserStripe | null {
+  const row = db
+    .prepare<[{ id: string }], StripeRow>(
+      `SELECT stripe_customer_id, stripe_subscription_id
+       FROM users WHERE id = @id`,
+    )
+    .get({ id });
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    customerId: row.stripe_customer_id,
+    subscriptionId: row.stripe_subscription_id,
+  };
+}
+
+export function setUserPlan(
+  db: DailyBriefDb,
+  userId: string,
+  plan: Plan,
+  stripe?: { customerId?: string | null; subscriptionId?: string | null },
+): boolean {
+  if (findUserById(db, userId) === null) {
+    return false;
+  }
+  if (stripe === undefined) {
+    db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(plan, userId);
+    return true;
+  }
+  const current = findUserStripe(db, userId);
+  if (current === null) {
+    return false;
+  }
+  const customerId =
+    stripe.customerId === undefined ? current.customerId : stripe.customerId;
+  const subscriptionId =
+    stripe.subscriptionId === undefined
+      ? current.subscriptionId
+      : stripe.subscriptionId;
+  db.prepare(
+    `UPDATE users
+     SET plan = ?, stripe_customer_id = ?, stripe_subscription_id = ?
+     WHERE id = ?`,
+  ).run(plan, customerId, subscriptionId, userId);
+  return true;
+}
+
 export function findOrCreateUser(
   db: DailyBriefDb,
   email: string,

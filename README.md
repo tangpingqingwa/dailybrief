@@ -82,6 +82,8 @@ npm start
 # GET /healthz → { "ok": true }
 # POST /auth/magic-link { "email": "you@example.com" }  (prints the link; no live mail)
 # GET /unsub/:token  (one-click; no login)
+# GET /app/billing  (auth; $9 starter / $19 pro, source caps 5 / 25)
+# POST /app/sources { "handle": "@alice" }  (auth; ClipAPI latest; plan cap)
 ```
 
 `AUTH_SECRET` is required in production (min 16 chars). Dev uses a fixed local secret. `PUBLIC_BASE_URL` defaults to `http://localhost:3000`.

@@ -140,12 +140,16 @@ test("GET /auth/verify sets a session cookie, creates the user once, and is sing
   const body = me.json() as {
     user: { email: string; plan: string; timezone: string; sendHour: number };
     sources: unknown[];
+    sourceCount: number;
+    sourceCap: number;
   };
   assert.equal(body.user.email, "ada@example.com");
   assert.equal(body.user.plan, "trial");
   assert.equal(body.user.timezone, "America/New_York");
   assert.equal(body.user.sendHour, 7);
   assert.deepEqual(body.sources, []);
+  assert.equal(body.sourceCount, 0);
+  assert.equal(body.sourceCap, 3);
 
   const replay = await app.inject({
     method: "GET",
