@@ -67,6 +67,23 @@ Low-price subs. Primary success is not MRR:
 - No browser-extension everything-bucket
 - No second transcript extractor inside this repo
 
+## Run locally
+
+Node 22+. Offline tests (no ClipAPI, no mail, no Stripe):
+
+```bash
+bash scripts/test.sh
+```
+
+Dev server (SQLite at `./data/dailybrief.sqlite` unless `DAILYBRIEF_DATABASE` is set):
+
+```bash
+npm start
+# GET /healthz → { "ok": true }
+```
+
+Kill switch: `FREEZE_NEW_SOURCES=0` (default). Set `1` after the 90-day review — this PR only reads the flag.
+
 ## First two weeks
 
 1. ClipAPI only: three creators, one 7:30 email
