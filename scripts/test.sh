@@ -48,6 +48,20 @@ grep -q 'EmailPort.send' BUILD.md || fail "BUILD.md missing EmailPort.send"
 grep -q 'createFakeEmail' tests/auth.test.ts \
   || fail "auth tests must use fake email (offline)"
 
+echo "== clip ingest contract =="
+grep -q 'GET /v1/creators/{handle}/latest' BUILD.md \
+  || fail "BUILD.md missing ClipAPI latest poll"
+grep -q 'shared summary' BUILD.md || fail "BUILD.md missing shared summary test"
+grep -q 'SummaryPort.summarize' BUILD.md || fail "BUILD.md missing SummaryPort"
+[[ -f src/clients/clip.ts ]] || fail "missing src/clients/clip.ts"
+[[ -f src/ingest.ts ]] || fail "missing src/ingest.ts"
+[[ -f src/summary/fake.ts ]] || fail "missing src/summary/fake.ts"
+[[ -f tests/ingest.test.ts ]] || fail "missing tests/ingest.test.ts"
+grep -q 'createFakeClip' tests/ingest.test.ts \
+  || fail "ingest tests must use fake ClipAPI (offline)"
+grep -q 'tiktok.com\|vm.tiktok.com\|www.tiktok.com' src/ingest.ts \
+  && fail "ingest must not scrape TikTok hosts"
+
 if [[ -f package.json ]]; then
   echo "== install =="
   if [[ ! -d node_modules ]]; then
@@ -57,6 +71,9 @@ if [[ -f package.json ]]; then
       npm install
     fi
   fi
+
+  # Never inherit a live ClipAPI target. Tests use tests/fake-clip.ts only.
+  unset CLIPAPI_BASE CLIPAPI_KEY
 
   echo "== tsc --noEmit =="
   npx tsc --noEmit
