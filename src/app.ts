@@ -1,10 +1,19 @@
 import Fastify, { type FastifyInstance } from "fastify";
 import { authRoutes } from "./auth/routes.js";
-import { loadAuthSecret, parsePublicBaseUrl } from "./config.js";
+import type { StripePort } from "./billing/port.js";
+import { createStripeClient } from "./billing/stripe.js";
+import { createClipClient, type ClipClient } from "./clients/clip.js";
+import {
+  loadAuthSecret,
+  parseFreezeNewSources,
+  parsePublicBaseUrl,
+} from "./config.js";
 import { openDatabase, type DailyBriefDb } from "./db.js";
 import { createConsoleEmail } from "./email/console.js";
 import type { EmailPort } from "./email/port.js";
+import { billingRoutes } from "./http/routes/billing.js";
 import { healthRoutes } from "./http/routes/health.js";
+import { sourcesRoutes } from "./http/routes/sources.js";
 import { unsubRoutes } from "./http/routes/unsub.js";
 
 export type BuildAppOptions = {
@@ -16,6 +25,9 @@ export type BuildAppOptions = {
   publicBaseUrl?: string;
   now?: () => Date;
   secureCookies?: boolean;
+  stripe?: StripePort;
+  clip?: ClipClient;
+  freezeNewSources?: boolean;
 };
 
 export async function buildApp(
@@ -33,13 +45,25 @@ export async function buildApp(
   await app.register(healthRoutes);
   const authSecret = options.authSecret ?? loadAuthSecret();
   const now = options.now ?? (() => new Date());
+  const publicBaseUrl = options.publicBaseUrl ?? parsePublicBaseUrl();
+  const session = { authSecret, now };
   await app.register(authRoutes, {
     email: options.email ?? createConsoleEmail(),
     authSecret,
-    publicBaseUrl: options.publicBaseUrl ?? parsePublicBaseUrl(),
+    publicBaseUrl,
     now,
     secureCookies: options.secureCookies ?? process.env.NODE_ENV === "production",
   });
-  await app.register(unsubRoutes, { authSecret, now });
+  await app.register(unsubRoutes, session);
+  await app.register(sourcesRoutes, {
+    ...session,
+    clip: options.clip ?? createClipClient(),
+    freezeNewSources: options.freezeNewSources ?? parseFreezeNewSources(),
+  });
+  await app.register(billingRoutes, {
+    ...session,
+    stripe: options.stripe ?? createStripeClient(),
+    publicBaseUrl,
+  });
   return app;
 }

@@ -22,6 +22,7 @@ test("migrate creates users, sources, items, deliveries", () => {
     "deliveries",
     "schema_migrations",
     "auth_consumed_jti",
+    "stripe_events",
   ]) {
     assert.ok(tables.includes(name), `missing table ${name}`);
   }
@@ -68,12 +69,24 @@ test("users default timezone and plan; send_hour is fixed at 7", () => {
     );
   }, /UNIQUE|constraint/i);
 
-  const unsub = db
-    .prepare<[], { unsubscribed_at: string | null }>(
-      "SELECT unsubscribed_at FROM users WHERE id = 'user_1'",
+  const extras = db
+    .prepare<
+      [],
+      {
+        unsubscribed_at: string | null;
+        stripe_customer_id: string | null;
+        stripe_subscription_id: string | null;
+      }
+    >(
+      `SELECT unsubscribed_at, stripe_customer_id, stripe_subscription_id
+       FROM users WHERE id = 'user_1'`,
     )
     .get();
-  assert.equal(unsub?.unsubscribed_at, null);
+  assert.deepEqual(extras, {
+    unsubscribed_at: null,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+  });
 });
 
 test("sources are per-user; same handle may exist for two users", () => {
