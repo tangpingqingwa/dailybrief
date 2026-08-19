@@ -15,7 +15,14 @@ test("migrate creates users, sources, items, deliveries", () => {
     .all()
     .map((row) => row.name);
 
-  for (const name of ["users", "sources", "items", "deliveries", "schema_migrations"]) {
+  for (const name of [
+    "users",
+    "sources",
+    "items",
+    "deliveries",
+    "schema_migrations",
+    "auth_consumed_jti",
+  ]) {
     assert.ok(tables.includes(name), `missing table ${name}`);
   }
   assert.ok(!tables.includes("user_sources"), "user_sources is not a v1 table");

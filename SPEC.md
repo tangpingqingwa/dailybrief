@@ -56,7 +56,7 @@ If upstream is not production, the type is hidden in the UI. No stubs that scrap
 
 ## 4. Accounts and billing
 
-Auth: email magic link.
+Auth: email magic link. HMAC-signed token, 20 min TTL, single-use (`jti`). Session cookie after `GET /auth/verify`.
 
 | Plan | Price | Sources | Extra |
 |---|---|---|---|
@@ -173,6 +173,9 @@ Slack: Pro only, same text, incoming webhook. If webhook 4xx, email still sends.
 
 ```
 GET  /                    marketing
+POST /auth/magic-link     { email } → 202, EmailPort.send (no user leak)
+GET  /auth/verify         ?token=  → set session cookie, 302 /app
+POST /auth/logout         clear cookie
 GET  /app                 source list (auth)
 POST /app/sources         add (validate via upstream latest)
 POST /app/sources/:id/delete
