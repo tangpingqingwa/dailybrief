@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
-import { buildApp } from "../src/app.js";
+import { buildApp, sendDailyFromApp } from "../src/app.js";
 import { APP_PATH, MAGIC_LINK_PATH, VERIFY_PATH } from "../src/auth/routes.js";
 import { setUserPlan } from "../src/auth/users.js";
 import { createFakeStripe } from "../src/billing/fake.js";
@@ -10,7 +10,7 @@ import { SLACK_DELETE_PATH, SLACK_PATH } from "../src/http/routes/slack.js";
 import { TIKTOK_CREATOR } from "../src/ingest.js";
 import { runDailySend } from "../src/send.js";
 import { createFakeSlack } from "../src/slack/fake.js";
-import { createSlackClient } from "../src/slack/http.js";
+import { createLiveSlack, createSlackClient } from "../src/slack/http.js";
 import { parseSlackWebhookUrl, slackEnabledForPlan } from "../src/slack/webhook.js";
 import type { Plan } from "../src/types.js";
 
@@ -112,9 +112,96 @@ test("Slack is Pro-only; parseSlackWebhookUrl requires https", () => {
 });
 
 test("createSlackClient is fail-closed and never talks to Slack", async () => {
-  const slack = createSlackClient();
+  let calls = 0;
+  const slack = createSlackClient({
+    env: {},
+    fetch: async () => {
+      calls += 1;
+      throw new Error("network must not run");
+    },
+  });
   const result = await slack.post(PRO_WEBHOOK, { text: "hello" });
   assert.deepEqual(result, { ok: false, status: 503 });
+  assert.equal(calls, 0);
+
+  const gated = createSlackClient({
+    env: { SLACK_LIVE: "1", EMAIL_FIXTURE_ONLY: "1" },
+    fetch: async () => {
+      calls += 1;
+      throw new Error("network must not run");
+    },
+  });
+  assert.deepEqual(await gated.post(PRO_WEBHOOK, { text: "hello" }), {
+    ok: false,
+    status: 503,
+  });
+  assert.equal(calls, 0);
+});
+
+test("SLACK_LIVE=1 posts through injected fetch only", async () => {
+  const seen: Array<{ url: string; body: string }> = [];
+  const slack = createSlackClient({
+    env: { SLACK_LIVE: "1" },
+    fetch: async (input, init) => {
+      seen.push({
+        url: String(input),
+        body: typeof init?.body === "string" ? init.body : "",
+      });
+      return new Response("ok", { status: 200 });
+    },
+  });
+  const result = await slack.post(PRO_WEBHOOK, { text: "same text as email" });
+  assert.deepEqual(result, { ok: true, status: 200 });
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].url, PRO_WEBHOOK);
+  assert.equal(JSON.parse(seen[0].body).text, "same text as email");
+
+  const live = createLiveSlack({
+    fetch: async () => new Response("invalid_payload", { status: 400 }),
+  });
+  assert.deepEqual(await live.post(PRO_WEBHOOK, { text: "x" }), {
+    ok: false,
+    status: 400,
+  });
+  assert.deepEqual(await live.post("https://example.com/nope", { text: "x" }), {
+    ok: false,
+    status: 400,
+  });
+});
+
+test("sendDailyFromApp uses the SlackPort wired into buildApp", async () => {
+  const db = openDatabase(":memory:");
+  after(() => db.close());
+  const email = createFakeEmail();
+  const slack = createFakeSlack();
+  seedUser(db, {
+    id: "user_pro",
+    email: "pro@example.com",
+    plan: "pro",
+    slackWebhookUrl: PRO_WEBHOOK,
+  });
+  seedSource(db, "user_pro");
+  seedItem(db);
+  const app = await buildApp({
+    db,
+    email,
+    slack,
+    authSecret: SECRET,
+    now: () => NOW,
+    publicBaseUrl: PUBLIC_BASE,
+  });
+  after(() => app.close());
+
+  const result = await sendDailyFromApp(app, {
+    email,
+    authSecret: SECRET,
+    publicBaseUrl: PUBLIC_BASE,
+    now: NOW,
+  });
+  assert.equal(result.sent, 1);
+  assert.equal(result.deliveries[0]?.slack, "sent");
+  assert.equal(slack.posted.length, 1);
+  assert.equal(slack.posted[0]?.text, email.sent[0]?.text);
 });
 
 test("POST /app/slack is 403 for starter and trial; Pro can save and clear", async () => {

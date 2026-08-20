@@ -69,7 +69,7 @@ Low-price subs. Primary success is not MRR:
 
 ## Run locally
 
-Node 22+. Offline tests (no ClipAPI, no mail, no Stripe, no Slack). Live mail is opt-in (`EMAIL_LIVE=1`) and never required for `scripts/test.sh`:
+Node 22+. Offline tests (no ClipAPI, no mail, no Stripe, no Slack). Live mail / Stripe / Slack are opt-in (`EMAIL_LIVE=1`, `STRIPE_LIVE=1`, `SLACK_LIVE=1`) and never required for `scripts/test.sh`:
 
 ```bash
 bash scripts/test.sh
@@ -90,7 +90,9 @@ npm start
 
 `AUTH_SECRET` is required in production (min 16 chars). Dev uses a fixed local secret. `PUBLIC_BASE_URL` defaults to `http://localhost:3000`.
 
-Live email (not used by tests): `EMAIL_LIVE=1`, `EMAIL_PROVIDER=resend` or `ses`, `EMAIL_FROM`, plus `RESEND_API_KEY` or AWS SES keys. `EMAIL_FIXTURE_ONLY=1` forces console / fail-closed. Unset / empty / `0` / `true` stay offline.
+Live email (not used by tests): `EMAIL_LIVE=1`, `EMAIL_PROVIDER=resend` or `ses`, `EMAIL_FROM`, plus `RESEND_API_KEY` or AWS SES keys. Live Stripe: `STRIPE_LIVE=1` plus `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price ids. Live Slack send: `SLACK_LIVE=1` (user webhook still stored per Pro account). `EMAIL_FIXTURE_ONLY=1` forces console / fail-closed for all three. Unset / empty / `0` / `true` stay offline.
+
+One-box deploy: [Dockerfile](./Dockerfile), [`.env.example`](./.env.example), [`deploy/runbook.md`](./deploy/runbook.md). Image does not set the live flags.
 
 Kill switch: `FREEZE_NEW_SOURCES=0` (default). Set `1` after the 90-day review — this PR only reads the flag.
 
@@ -103,7 +105,7 @@ Kill switch: `FREEZE_NEW_SOURCES=0` (default). Set `1` after the 90-day review �
 
 ## Dogfood
 
-The founder’s morning brief comes only from DailyBrief. Opening TikTok “following” by habit is logged as product debt.
+The founder’s morning brief comes only from DailyBrief. Opening TikTok “following” by habit is logged as product debt. Fourteen-day checklist: [dogfood.md](./dogfood.md). The days are not done just because the file exists.
 
 ## Risk
 

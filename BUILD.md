@@ -75,6 +75,8 @@ If transcript `no_transcript`: summary = first 200 chars of description + ` (no 
 | cap | 6th source on starter → 400 |
 | slack pro | Pro posts same text; Starter never posts; webhook 4xx still emails |
 | live email | unset / `0` / `true` stay console or fail-closed; `EMAIL_LIVE=1` + secrets selects Resend or SES; `EMAIL_FIXTURE_ONLY=1` wins |
+| live stripe | unset / `0` / `true` stay fail-closed; `STRIPE_LIVE=1` + secrets selects `api.stripe.com`; `EMAIL_FIXTURE_ONLY=1` wins |
+| live slack | unset / `0` / `true` stay `{ok:false,503}`; `SLACK_LIVE=1` posts via injected fetch; 4xx still emails |
 
 ---
 
@@ -112,8 +114,10 @@ Reddit/X/Store types each get their own later PR **after** those APIs have BUILD
 
 Live EmailPort (GA, after PR 6): `src/email/resend.ts`, `src/email/ses.ts`, `src/email/create.ts`. Default remains console / fake. `EMAIL_LIVE=1` plus `EMAIL_PROVIDER=resend|ses` and secrets. `EMAIL_FIXTURE_ONLY=1` always wins. `scripts/test.sh` stays offline.
 
+GA wire + deploy: `createStripeClient` / `createSlackClient` are env-gated (`STRIPE_LIVE=1`, `SLACK_LIVE=1`) and wired into `buildApp` / `sendDailyFromApp`. Dockerfile + `.env.example` + `deploy/runbook.md` + `dogfood.md`. Image and CI do not set live flags.
+
 ---
 
 ## 7. Founder dogfood
 
-`dogfood.md` checklist (14 days) is required before calling M2 launched. Keep it in-repo; update via PR.
+`dogfood.md` checklist (14 days) is required before calling M2 launched. Keep it in-repo; update via PR. Landing the file is not the same as finishing the 14 days.
