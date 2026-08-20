@@ -178,6 +178,29 @@ if grep -Eqi 'SLACK_LIVE=1|SLACK_LIVE=true' .github/workflows/ci.yml; then
   fail "CI must not set SLACK_LIVE=1"
 fi
 
+echo "== live smoke script is operator-only =="
+[[ -f scripts/live-smoke.sh ]] || fail "missing scripts/live-smoke.sh"
+[[ -x scripts/live-smoke.sh ]] || fail "scripts/live-smoke.sh must be executable"
+[[ -f docs/live-smoke.md ]] || fail "missing docs/live-smoke.md"
+[[ -s docs/live-smoke.md ]] || fail "empty docs/live-smoke.md"
+[[ -f src/email/file.ts ]] || fail "missing src/email/file.ts"
+[[ -f src/live-smoke.ts ]] || fail "missing src/live-smoke.ts"
+[[ -f tests/live-smoke.test.ts ]] || fail "missing tests/live-smoke.test.ts"
+grep -q 'EMAIL_SINK' src/email/create.ts || fail "createEmail missing EMAIL_SINK file sink"
+grep -q 'createFileEmail' src/email/file.ts || fail "missing createFileEmail"
+grep -q 'runLiveSmoke' src/live-smoke.ts || fail "missing runLiveSmoke"
+grep -q 'BLOCKED-SECRET' docs/live-smoke.md || fail "docs/live-smoke.md missing BLOCKED-SECRET"
+grep -q 'CLIPAPI_KEY' docs/live-smoke.md || fail "docs/live-smoke.md must name CLIPAPI_KEY"
+if grep -q 'bash scripts/live-smoke.sh\|scripts/live-smoke.sh' .github/workflows/ci.yml; then
+  fail "live-smoke.sh must not be called from Actions"
+fi
+if grep -Eq '^\s*(bash )?scripts/live-smoke\.sh' scripts/test.sh; then
+  fail "test.sh must not invoke live-smoke.sh"
+fi
+if grep -Eqi 'EMAIL_LIVE=1|CLIPAPI_KEY=' .github/workflows/ci.yml; then
+  fail "CI must not set EMAIL_LIVE=1 or CLIPAPI_KEY"
+fi
+
 echo "== deploy artifacts (Dockerfile + runbook) =="
 [[ -f Dockerfile ]] || fail "missing Dockerfile"
 [[ -f .env.example ]] || fail "missing .env.example"
@@ -220,7 +243,7 @@ if [[ -f package.json ]]; then
 
   # Never inherit a live ClipAPI, Stripe, Slack, or mail target. Tests use fakes only.
   unset CLIPAPI_BASE CLIPAPI_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_API_KEY STRIPE_PRICE_STARTER STRIPE_PRICE_PRO SLACK_WEBHOOK_URL
-  unset EMAIL_LIVE EMAIL_PROVIDER EMAIL_FROM RESEND_API_KEY STRIPE_LIVE SLACK_LIVE
+  unset EMAIL_LIVE EMAIL_PROVIDER EMAIL_FROM RESEND_API_KEY STRIPE_LIVE SLACK_LIVE EMAIL_SINK EMAIL_SINK_PATH
   unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION AWS_DEFAULT_REGION SES_REGION
   export EMAIL_FIXTURE_ONLY=1
   [[ "${EMAIL_LIVE:-}" != "1" ]] || fail "EMAIL_LIVE must stay unset in test.sh"

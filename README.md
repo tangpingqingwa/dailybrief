@@ -90,7 +90,9 @@ npm start
 
 `AUTH_SECRET` is required in production (min 16 chars). Dev uses a fixed local secret. `PUBLIC_BASE_URL` defaults to `http://localhost:3000`.
 
-Live email (not used by tests): `EMAIL_LIVE=1`, `EMAIL_PROVIDER=resend` or `ses`, `EMAIL_FROM`, plus `RESEND_API_KEY` or AWS SES keys. Live Stripe: `STRIPE_LIVE=1` plus `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price ids. Live Slack send: `SLACK_LIVE=1` (user webhook still stored per Pro account). `EMAIL_FIXTURE_ONLY=1` forces console / fail-closed for all three. Unset / empty / `0` / `true` stay offline.
+Live email (not used by tests): `EMAIL_LIVE=1`, `EMAIL_PROVIDER=resend` or `ses`, `EMAIL_FROM`, plus `RESEND_API_KEY` or AWS SES keys. Without a vendor secret, `EMAIL_SINK=file` plus `EMAIL_SINK_PATH` is the documented console/file adapter. Live Stripe: `STRIPE_LIVE=1` plus `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and price ids. Live Slack send: `SLACK_LIVE=1` (user webhook still stored per Pro account). `EMAIL_FIXTURE_ONLY=1` forces console / fail-closed for all three. Unset / empty / `0` / `true` stay offline.
+
+Operator live smoke (not CI): `bash scripts/live-smoke.sh` ingest+sends one TikTok via live ClipAPI (`CLIPAPI_KEY`) and asserts the unsub token. Results: [docs/live-smoke.md](./docs/live-smoke.md).
 
 One-box deploy: [Dockerfile](./Dockerfile), [`.env.example`](./.env.example), [`deploy/runbook.md`](./deploy/runbook.md). Image does not set the live flags.
 

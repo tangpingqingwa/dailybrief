@@ -6,6 +6,7 @@ import {
   EmailUnavailableError,
   parseEmailFrom,
   parseEmailProvider,
+  parseEmailSinkPath,
   resolveEmailAdapter,
 } from "../src/email/create.js";
 import { createFakeEmail } from "../src/email/fake.js";
@@ -95,6 +96,15 @@ test("resolveEmailAdapter stays console / fail-closed unless EMAIL_LIVE=1", () =
   assert.deepEqual(
     resolveEmailAdapter({ EMAIL_LIVE: "1", EMAIL_FIXTURE_ONLY: "1" }),
     { kind: "console" },
+  );
+  assert.deepEqual(
+    resolveEmailAdapter({
+      EMAIL_LIVE: "1",
+      EMAIL_FIXTURE_ONLY: "1",
+      EMAIL_SINK: "file",
+      EMAIL_SINK_PATH: "/tmp/sent.json",
+    }),
+    { kind: "console", path: "/tmp/sent.json" },
   );
   assert.equal(resolveEmailAdapter({ NODE_ENV: "production" }).kind, "unavailable");
   assert.equal(
@@ -341,4 +351,5 @@ test("createEmail(EMAIL_LIVE=1) uses injected fetch for Resend and SES", async (
     "https://email.us-east-1.amazonaws.com/v2/email/outbound-emails",
   );
   assert.equal(EMAIL_TIMEOUT_MS, 8000);
+  assert.equal(parseEmailSinkPath({ EMAIL_SINK: "console" }), null);
 });

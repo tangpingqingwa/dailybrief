@@ -77,6 +77,7 @@ If transcript `no_transcript`: summary = first 200 chars of description + ` (no 
 | live email | unset / `0` / `true` stay console or fail-closed; `EMAIL_LIVE=1` + secrets selects Resend or SES; `EMAIL_FIXTURE_ONLY=1` wins |
 | live stripe | unset / `0` / `true` stay fail-closed; `STRIPE_LIVE=1` + secrets selects `api.stripe.com`; `EMAIL_FIXTURE_ONLY=1` wins |
 | live slack | unset / `0` / `true` stay `{ok:false,503}`; `SLACK_LIVE=1` posts via injected fetch; 4xx still emails |
+| live smoke | operator `scripts/live-smoke.sh` ingest+send one TikTok via live ClipAPI; file/console EmailPort if mail secret missing; unsub token works; not in CI |
 
 ---
 
@@ -115,6 +116,12 @@ Reddit/X/Store types each get their own later PR **after** those APIs have BUILD
 Live EmailPort (GA, after PR 6): `src/email/resend.ts`, `src/email/ses.ts`, `src/email/create.ts`. Default remains console / fake. `EMAIL_LIVE=1` plus `EMAIL_PROVIDER=resend|ses` and secrets. `EMAIL_FIXTURE_ONLY=1` always wins. `scripts/test.sh` stays offline.
 
 GA wire + deploy: `createStripeClient` / `createSlackClient` are env-gated (`STRIPE_LIVE=1`, `SLACK_LIVE=1`) and wired into `buildApp` / `sendDailyFromApp`. Dockerfile + `.env.example` + `deploy/runbook.md` + `dogfood.md`. Image and CI do not set live flags.
+
+### Follow-up: live smoke (operator only)
+- **Description:** Local process walks one TikTok ingest + daily send via live ClipAPI. EmailPort is live Resend/SES **or** the documented console / `EMAIL_SINK=file` adapter. Unsub token from that send works. Missing `CLIPAPI_KEY` or mail vendor secret → `BLOCKED-SECRET` (file sink still counts as a received send).
+- **Files:** `scripts/live-smoke.sh`, `docs/live-smoke.md`, `src/email/file.ts`, `src/live-smoke.ts`, `src/live-smoke-cli.ts`, `tests/live-smoke.test.ts`
+- **Dependencies:** GA wire + deploy
+- **Acceptance:** script is not called from `scripts/test.sh` or Actions. CI must not set `EMAIL_LIVE` or `CLIPAPI_KEY`.
 
 ---
 

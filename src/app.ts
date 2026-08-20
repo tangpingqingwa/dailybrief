@@ -38,7 +38,11 @@ export type BuildAppOptions = {
 export async function buildApp(
   options: BuildAppOptions = {},
 ): Promise<FastifyInstance> {
-  const app = Fastify({ logger: options.logger ?? false });
+  const app = Fastify({
+    logger: options.logger ?? false,
+    // HMAC unsub tokens are base64url JSON + sig; default 100 is too short.
+    routerOptions: { maxParamLength: 2048 },
+  });
   app.addContentTypeParser(
     "application/json",
     { parseAs: "buffer" },

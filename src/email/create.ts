@@ -22,7 +22,7 @@ export type CreateEmailOptions = {
 };
 
 export type ResolvedEmailAdapter =
-  | { kind: "console" }
+  | { kind: "console"; path?: string }
   | { kind: "unavailable"; reason: string }
   | { kind: "resend"; config: ResendEmailConfig }
   | { kind: "ses"; config: SesEmailConfig };
@@ -30,13 +30,16 @@ export type ResolvedEmailAdapter =
 /**
  * Default is console (dev) / fail-closed (production). Live Resend or SES
  * requires EMAIL_LIVE=1, EMAIL_PROVIDER, EMAIL_FROM, and provider secrets.
+ * EMAIL_SINK=file plus EMAIL_SINK_PATH writes JSON without a mail vendor.
  */
 export function createEmail(options: CreateEmailOptions = {}): EmailPort {
   const env = options.env ?? process.env;
   const resolved = resolveEmailAdapter(env);
   switch (resolved.kind) {
     case "console":
-      return createConsoleEmail();
+      return createConsoleEmail(
+        resolved.path !== undefined ? { path: resolved.path } : {},
+      );
     case "unavailable":
       return createUnavailableEmail(resolved.reason);
     case "resend":
@@ -56,7 +59,11 @@ export function createEmail(options: CreateEmailOptions = {}): EmailPort {
 export function resolveEmailAdapter(
   env: NodeJS.ProcessEnv = process.env,
 ): ResolvedEmailAdapter {
+  const sinkPath = parseEmailSinkPath(env);
   if (!liveEmailEnabled(env)) {
+    if (sinkPath !== null) {
+      return { kind: "console", path: sinkPath };
+    }
     if ((env.NODE_ENV ?? "development") === "production") {
       return {
         kind: "unavailable",
@@ -118,6 +125,16 @@ export function parseEmailProvider(value: string | undefined): EmailProvider | n
     return value;
   }
   return null;
+}
+
+/** File / console sink used when the mail vendor secret is missing. */
+export function parseEmailSinkPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  if (env.EMAIL_SINK !== "file") {
+    return null;
+  }
+  return nonEmpty(env.EMAIL_SINK_PATH);
 }
 
 export function parseEmailFrom(value: string | undefined): string | null {
