@@ -51,6 +51,8 @@ Magic-link mail stays console / fail-closed until `EMAIL_LIVE=1`. Checkout is `5
 4. Slack: set `SLACK_LIVE=1`. Users still paste their own incoming webhook on `POST /app/slack` (Pro only). A webhook 4xx does not block email.
 5. Recreate the container. Leave the flags unset in CI. `scripts/test.sh` unsets them and fails if `.github/workflows/ci.yml` sets `EMAIL_LIVE=1`, `STRIPE_LIVE=1`, or `SLACK_LIVE=1`.
 
+Operator live smoke (not CI, not the image): `bash scripts/live-smoke.sh`. Needs `CLIPAPI_KEY`. Mail vendor optional — `EMAIL_SINK=file` writes JSON the script asserts. Missing `CLIPAPI_KEY` is `BLOCKED-SECRET`. Missing `RESEND_API_KEY` / SES keys is `BLOCKED-SECRET` unless the file/console sink is used.
+
 Roll back: set the flag to `0` (or unset) and recreate. Do not run live Stripe, Slack, or mail from CI.
 
 ## Data
