@@ -124,7 +124,8 @@ async function main(): Promise<number> {
   const authSecret = loadAuthSecret();
   const publicBaseUrl = parsePublicBaseUrl();
   const now = new Date();
-  const clip = createClipClient();
+  // Live latest+transcript can exceed the default 8s client budget.
+  const clip = createClipClient({ timeoutMs: 25_000 });
   const email = createEmail();
   const app = await buildApp({
     db,

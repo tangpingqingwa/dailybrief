@@ -143,6 +143,50 @@ test("offline live-smoke ingest+send+unsub uses fake ClipAPI and file sink", asy
   assert.ok(row?.unsubscribed_at);
 });
 
+test("offline live-smoke empty latest still sends empty mail and unsubs", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "dailybrief-smoke-empty-"));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+  const path = join(dir, "sent.json");
+  const db = openDatabase(":memory:");
+  const email = createFileEmail(path);
+  const clip = createFakeClip({ latest: { nasa: [] } });
+  const app = await buildApp({
+    db,
+    email,
+    clip,
+    authSecret: SECRET,
+    publicBaseUrl: PUBLIC_BASE,
+    now: () => NOW,
+  });
+  after(async () => {
+    await app.close();
+    db.close();
+  });
+
+  const result = await runLiveSmoke({
+    db,
+    clip,
+    email,
+    authSecret: SECRET,
+    publicBaseUrl: PUBLIC_BASE,
+    handle: "nasa",
+    now: NOW,
+    readSent: () => readEmailSink(path),
+  });
+
+  const ingest = result.cases.find((row) => row.name.startsWith("ingest"));
+  const send = result.cases.find((row) => row.name.startsWith("EmailPort"));
+  assert.equal(ingest?.verdict, "PASS");
+  assert.match(ingest?.detail ?? "", /latest empty/);
+  assert.equal(send?.verdict, "PASS");
+  assert.match(result.message?.text ?? "", /Nothing new yesterday/);
+  assert.match(result.message?.text ?? "", /\/unsub\//);
+  const token = extractUnsubToken(result.message?.text ?? "");
+  const unsub = await app.inject({ method: "GET", url: `/unsub/${token}` });
+  assert.equal(unsub.statusCode, 200);
+  assert.match(unsub.body, /unsubscribed/i);
+});
+
 test("placeItemInDueWindow moves a summarized item into today's send", () => {
   const db = openDatabase(":memory:");
   after(() => db.close());

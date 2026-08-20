@@ -193,6 +193,8 @@ export async function runLiveSmoke(deps: LiveSmokeDeps): Promise<LiveSmokeResult
   const summarized = ingest.summarizedItemIds.length;
   const delayedOnly =
     ingest.partial && ingest.newItemIds.length === 0 && summarized === 0;
+  const polledHandle =
+    ingest.handlesPolled.includes(deps.handle) || ingest.handlesPolled.length > 0;
   if (summarized > 0 || ingest.newItemIds.length > 0) {
     cases.push({
       name: "ingest one TikTok via live ClipAPI",
@@ -204,6 +206,13 @@ export async function runLiveSmoke(deps: LiveSmokeDeps): Promise<LiveSmokeResult
       name: "ingest one TikTok via live ClipAPI",
       verdict: "PASS-ERROR",
       detail: `ClipAPI delayed handle=${deps.handle} (no scrape fallback)`,
+    });
+  } else if (polledHandle && !ingest.partial) {
+    // Live latest may honestly return videos=[] (SSR omitted itemList). Do not invent a page.
+    cases.push({
+      name: "ingest one TikTok via live ClipAPI",
+      verdict: "PASS",
+      detail: `polled ${ingest.handlesPolled.join(",") || deps.handle}; latest empty (no invented creator page)`,
     });
   } else {
     cases.push({

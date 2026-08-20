@@ -191,6 +191,10 @@ grep -q 'createFileEmail' src/email/file.ts || fail "missing createFileEmail"
 grep -q 'runLiveSmoke' src/live-smoke.ts || fail "missing runLiveSmoke"
 grep -q 'BLOCKED-SECRET' docs/live-smoke.md || fail "docs/live-smoke.md missing BLOCKED-SECRET"
 grep -q 'CLIPAPI_KEY' docs/live-smoke.md || fail "docs/live-smoke.md must name CLIPAPI_KEY"
+grep -q 'latest empty' src/live-smoke.ts \
+  || fail "live-smoke must accept honest empty ClipAPI latest (no invented page)"
+grep -q 'nasa: \[\]' tests/live-smoke.test.ts \
+  || fail "live-smoke tests must cover empty latest without inventing videos"
 if grep -q 'bash scripts/live-smoke.sh\|scripts/live-smoke.sh' .github/workflows/ci.yml; then
   fail "live-smoke.sh must not be called from Actions"
 fi
