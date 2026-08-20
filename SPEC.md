@@ -157,7 +157,7 @@ No user-custom prompts in v1 (Recapio Pro feature — skip).
 
 ## 8. Email
 
-Provider: cheapest transactional (Resend / Postmark / SES). Do not run a mail server.
+Provider: cheapest transactional (Resend / SES). Do not run a mail server. Sends go through `EmailPort.send`. Live adapters are env-gated (`EMAIL_LIVE=1`); tests use fake / console.
 
 Subject: `DailyBrief — {weekday}` or `DailyBrief — {N} new from your sources`.
 

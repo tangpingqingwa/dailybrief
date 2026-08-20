@@ -14,7 +14,7 @@ No scrapers. ClipAPI only at launch. Shared summaries are the COGS control.
 | API / workers | Node 22, TS, Fastify |
 | DB | SQLite (users, sources, items, deliveries) |
 | Auth | Magic link: signed token in email, 20 min TTL |
-| Email | Provider interface `EmailPort.send`. Adapter `console` in tests, Resend/SES later |
+| Email | Provider interface `EmailPort.send`. Adapter `console` / fake in tests. Live Resend or SES when `EMAIL_LIVE=1` (env-gated; fail-closed without secrets) |
 | Summary | `SummaryPort.summarize(text) → ≤80 words`. Adapter `fake` returns first 80 words; live model later |
 | Scheduler | `node-cron` in-process v1 (one box). If process restarts, catch-up job on boot |
 | Tests | node:test + fake ClipAPI + fake email |
@@ -74,6 +74,7 @@ If transcript `no_transcript`: summary = first 200 chars of description + ` (no 
 | clip down | delivery still recorded with `partial=1`, no scrape |
 | cap | 6th source on starter → 400 |
 | slack pro | Pro posts same text; Starter never posts; webhook 4xx still emails |
+| live email | unset / `0` / `true` stay console or fail-closed; `EMAIL_LIVE=1` + secrets selects Resend or SES; `EMAIL_FIXTURE_ONLY=1` wins |
 
 ---
 
@@ -108,6 +109,8 @@ If transcript `no_transcript`: summary = first 200 chars of description + ` (no 
 - **Acceptance:** Pro incoming webhook, same text as email; Starter/trial 403; webhook 4xx still emails
 
 Reddit/X/Store types each get their own later PR **after** those APIs have BUILD PR “launch” on main. Not in v1 launch.
+
+Live EmailPort (GA, after PR 6): `src/email/resend.ts`, `src/email/ses.ts`, `src/email/create.ts`. Default remains console / fake. `EMAIL_LIVE=1` plus `EMAIL_PROVIDER=resend|ses` and secrets. `EMAIL_FIXTURE_ONLY=1` always wins. `scripts/test.sh` stays offline.
 
 ---
 

@@ -10,7 +10,24 @@ export type AppConfig = {
   freezeNewSources: boolean;
   authSecret: string;
   publicBaseUrl: string;
+  liveEmail: boolean;
 };
+
+/** BUILD env flags are `"1"` to enable; anything else is off. */
+export function isEnvFlagEnabled(value: string | undefined): boolean {
+  return value === "1";
+}
+
+/**
+ * Live transactional mail. EMAIL_FIXTURE_ONLY=1 always wins so CI / test.sh
+ * stay offline even if EMAIL_LIVE leaks into the environment.
+ */
+export function liveEmailEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (isEnvFlagEnabled(env.EMAIL_FIXTURE_ONLY)) {
+    return false;
+  }
+  return isEnvFlagEnabled(env.EMAIL_LIVE);
+}
 
 export function parseListenPort(value = process.env.PORT): number {
   if (value === undefined || value === "") {
@@ -88,5 +105,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     freezeNewSources: parseFreezeNewSources(env.FREEZE_NEW_SOURCES),
     authSecret: loadAuthSecret(env, nodeEnv),
     publicBaseUrl: parsePublicBaseUrl(env.PUBLIC_BASE_URL),
+    liveEmail: liveEmailEnabled(env),
   };
 }
