@@ -9,7 +9,7 @@ import {
   parsePublicBaseUrl,
 } from "./config.js";
 import { openDatabase, type DailyBriefDb } from "./db.js";
-import { createConsoleEmail } from "./email/console.js";
+import { createEmail } from "./email/create.js";
 import type { EmailPort } from "./email/port.js";
 import { billingRoutes } from "./http/routes/billing.js";
 import { healthRoutes } from "./http/routes/health.js";
@@ -49,7 +49,7 @@ export async function buildApp(
   const publicBaseUrl = options.publicBaseUrl ?? parsePublicBaseUrl();
   const session = { authSecret, now };
   await app.register(authRoutes, {
-    email: options.email ?? createConsoleEmail(),
+    email: options.email ?? createEmail(),
     authSecret,
     publicBaseUrl,
     now,

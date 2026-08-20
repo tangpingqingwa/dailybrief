@@ -69,7 +69,7 @@ Low-price subs. Primary success is not MRR:
 
 ## Run locally
 
-Node 22+. Offline tests (no ClipAPI, no mail, no Stripe, no Slack):
+Node 22+. Offline tests (no ClipAPI, no mail, no Stripe, no Slack). Live mail is opt-in (`EMAIL_LIVE=1`) and never required for `scripts/test.sh`:
 
 ```bash
 bash scripts/test.sh
@@ -89,6 +89,8 @@ npm start
 ```
 
 `AUTH_SECRET` is required in production (min 16 chars). Dev uses a fixed local secret. `PUBLIC_BASE_URL` defaults to `http://localhost:3000`.
+
+Live email (not used by tests): `EMAIL_LIVE=1`, `EMAIL_PROVIDER=resend` or `ses`, `EMAIL_FROM`, plus `RESEND_API_KEY` or AWS SES keys. `EMAIL_FIXTURE_ONLY=1` forces console / fail-closed. Unset / empty / `0` / `true` stay offline.
 
 Kill switch: `FREEZE_NEW_SOURCES=0` (default). Set `1` after the 90-day review — this PR only reads the flag.
 

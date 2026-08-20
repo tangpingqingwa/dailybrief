@@ -81,6 +81,32 @@ if grep -Eqi 'resend|postmark|ses\.amazonaws|smtp' src/send.ts src/email/templat
   fail "daily send must use EmailPort only (no live mail)"
 fi
 
+echo "== live EmailPort (env-gated) =="
+[[ -f src/email/create.ts ]] || fail "missing src/email/create.ts"
+[[ -f src/email/resend.ts ]] || fail "missing src/email/resend.ts"
+[[ -f src/email/ses.ts ]] || fail "missing src/email/ses.ts"
+[[ -f tests/email.test.ts ]] || fail "missing tests/email.test.ts"
+grep -q 'liveEmailEnabled' src/config.ts || fail "config missing liveEmailEnabled"
+grep -q 'EMAIL_LIVE' src/config.ts || fail "config missing EMAIL_LIVE"
+grep -q 'EMAIL_FIXTURE_ONLY' src/config.ts || fail "config missing EMAIL_FIXTURE_ONLY"
+grep -q 'createEmail' src/email/create.ts || fail "missing createEmail factory"
+grep -q 'createResendEmail' src/email/resend.ts || fail "missing createResendEmail"
+grep -q 'createSesEmail' src/email/ses.ts || fail "missing createSesEmail"
+grep -q 'createFakeEmail' tests/email.test.ts \
+  || fail "email tests must keep fake email (offline)"
+grep -q 'EMAIL_FIXTURE_ONLY' tests/email.test.ts \
+  || fail "email tests must assert EMAIL_FIXTURE_ONLY wins"
+if grep -Eqi 'https?://[^[:space:]]*(api\.resend\.com|email\.[^[:space:]]*amazonaws\.com)' \
+  src/send.ts src/app.ts src/auth/*.ts src/http/routes/*.ts src/email/fake.ts src/email/console.ts src/email/templates/*.ts; then
+  fail "app send path must use EmailPort only (no live Resend/SES hosts)"
+fi
+if grep -Eqi 'EMAIL_LIVE=1|EMAIL_LIVE=true' .github/workflows/ci.yml; then
+  fail "CI must not set EMAIL_LIVE=1"
+fi
+if grep -RInE 'RESEND_API_KEY=|AWS_SECRET_ACCESS_KEY=' .github >/dev/null 2>&1; then
+  fail "CI must not set live email secrets"
+fi
+
 echo "== stripe billing + source caps =="
 grep -Fq '| Starter | $9 / mo | 5 |' SPEC.md \
   || fail "SPEC.md missing Starter $9 / 5 sources"
@@ -137,8 +163,12 @@ if [[ -f package.json ]]; then
     fi
   fi
 
-  # Never inherit a live ClipAPI, Stripe, or Slack target. Tests use fakes only.
+  # Never inherit a live ClipAPI, Stripe, Slack, or mail target. Tests use fakes only.
   unset CLIPAPI_BASE CLIPAPI_KEY STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET STRIPE_API_KEY SLACK_WEBHOOK_URL
+  unset EMAIL_LIVE EMAIL_PROVIDER EMAIL_FROM RESEND_API_KEY
+  unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION AWS_DEFAULT_REGION SES_REGION
+  export EMAIL_FIXTURE_ONLY=1
+  [[ "${EMAIL_LIVE:-}" != "1" ]] || fail "EMAIL_LIVE must stay unset in test.sh"
 
   echo "== tsc --noEmit =="
   npx tsc --noEmit
