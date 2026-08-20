@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   liveEmailEnabled,
+  liveSlackEnabled,
+  liveStripeEnabled,
   loadAuthSecret,
   loadConfig,
   parseFreezeNewSources,
@@ -51,6 +53,8 @@ test("loadConfig requires DAILYBRIEF_DATABASE and AUTH_SECRET in production", ()
   assert.equal(config.authSecret, "production-auth-secret");
   assert.equal(config.publicBaseUrl, "https://dailybrief.example");
   assert.equal(config.liveEmail, false);
+  assert.equal(config.liveStripe, false);
+  assert.equal(config.liveSlack, false);
 });
 
 test("EMAIL_LIVE is 1 only; EMAIL_FIXTURE_ONLY=1 always wins", () => {
@@ -70,6 +74,35 @@ test("EMAIL_LIVE is 1 only; EMAIL_FIXTURE_ONLY=1 always wins", () => {
     EMAIL_LIVE: "1",
   });
   assert.equal(live.liveEmail, true);
+  assert.equal(live.liveStripe, false);
+  assert.equal(live.liveSlack, false);
+});
+
+test("STRIPE_LIVE and SLACK_LIVE are 1 only; EMAIL_FIXTURE_ONLY=1 always wins", () => {
+  assert.equal(liveStripeEnabled({}), false);
+  assert.equal(liveStripeEnabled({ STRIPE_LIVE: "1" }), true);
+  assert.equal(liveStripeEnabled({ STRIPE_LIVE: "true" }), false);
+  assert.equal(liveStripeEnabled({ STRIPE_LIVE: "0" }), false);
+  assert.equal(
+    liveStripeEnabled({ STRIPE_LIVE: "1", EMAIL_FIXTURE_ONLY: "1" }),
+    false,
+  );
+  assert.equal(liveSlackEnabled({}), false);
+  assert.equal(liveSlackEnabled({ SLACK_LIVE: "1" }), true);
+  assert.equal(liveSlackEnabled({ SLACK_LIVE: "true" }), false);
+  assert.equal(
+    liveSlackEnabled({ SLACK_LIVE: "1", EMAIL_FIXTURE_ONLY: "1" }),
+    false,
+  );
+  const live = loadConfig({
+    NODE_ENV: "production",
+    DAILYBRIEF_DATABASE: "/tmp/dailybrief.sqlite",
+    AUTH_SECRET: "production-auth-secret",
+    STRIPE_LIVE: "1",
+    SLACK_LIVE: "1",
+  });
+  assert.equal(live.liveStripe, true);
+  assert.equal(live.liveSlack, true);
 });
 
 test("AUTH_SECRET defaults in development and rejects short values", () => {

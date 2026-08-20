@@ -11,6 +11,8 @@ export type AppConfig = {
   authSecret: string;
   publicBaseUrl: string;
   liveEmail: boolean;
+  liveStripe: boolean;
+  liveSlack: boolean;
 };
 
 /** BUILD env flags are `"1"` to enable; anything else is off. */
@@ -27,6 +29,28 @@ export function liveEmailEnabled(env: NodeJS.ProcessEnv = process.env): boolean 
     return false;
   }
   return isEnvFlagEnabled(env.EMAIL_LIVE);
+}
+
+/**
+ * Live Stripe checkout / portal / webhooks. EMAIL_FIXTURE_ONLY=1 always wins
+ * so CI stays offline even if STRIPE_LIVE leaks into the environment.
+ */
+export function liveStripeEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (isEnvFlagEnabled(env.EMAIL_FIXTURE_ONLY)) {
+    return false;
+  }
+  return isEnvFlagEnabled(env.STRIPE_LIVE);
+}
+
+/**
+ * Live Slack incoming webhooks on the daily send path. EMAIL_FIXTURE_ONLY=1
+ * always wins so CI stays offline even if SLACK_LIVE leaks into the environment.
+ */
+export function liveSlackEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  if (isEnvFlagEnabled(env.EMAIL_FIXTURE_ONLY)) {
+    return false;
+  }
+  return isEnvFlagEnabled(env.SLACK_LIVE);
 }
 
 export function parseListenPort(value = process.env.PORT): number {
@@ -106,5 +130,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     authSecret: loadAuthSecret(env, nodeEnv),
     publicBaseUrl: parsePublicBaseUrl(env.PUBLIC_BASE_URL),
     liveEmail: liveEmailEnabled(env),
+    liveStripe: liveStripeEnabled(env),
+    liveSlack: liveSlackEnabled(env),
   };
 }
